@@ -10,6 +10,7 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 
+
 def predict(model, test_loader):
     with torch.no_grad():
         logits = []
@@ -20,6 +21,7 @@ def predict(model, test_loader):
             logits.append(outputs)
     probs = torch.nn.functional.softmax(torch.cat(logits), dim=-1).numpy()
     return probs
+
 
 def genral_pred(labels, model_incep):
     global pic_path
@@ -40,7 +42,6 @@ def genral_pred(labels, model_incep):
         test_loader = DataLoader(x, shuffle=False, batch_size=64)
         probs = predict(model_incep, test_loader)
         preds = label_encoder.inverse_transform(np.argmax(probs, axis=1))
-        print(d[preds[0]])
         name['text'] = 'Это ' + str(d[preds[0]])
 
 
@@ -68,7 +69,7 @@ def choose_file():
     old = pic_path
     pic_path = filedialog.askopenfilename(title='open')
     new = pic_path
-    if old != new:
+    if old != new and new != '':
         show_img(pic_path)
 
 
@@ -148,6 +149,7 @@ btn_pred.grid(row=4, column=0)
 btn_all.grid(row=5, column=0)
 pic_path = 'no_path'
 RESCALE_SIZE = 299
+# словарь (хеш-таблица), для соотношения названий классов и русскоязычных имен персонажей
 d = {'abraham_grampa_simpson': 'Абрахам Симпсон (Дед)',
      'agnes_skinner': 'Агнес Скиннер',
      'apu_nahasapeemapetilon': 'Апу Нахасапимапетилон',
