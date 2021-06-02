@@ -1,4 +1,5 @@
 from tkinter import *
+import os
 from StyledWidgets import HoverButton
 from tkinter import filedialog
 from PIL import ImageTk, Image
@@ -11,9 +12,12 @@ from PIL import Image
 import numpy as np
 
 
+# функция генерации самого предсказания с помощью нейронной сети
 def predict(model, test_loader):
+    # без рассчета градиентов
     with torch.no_grad():
         logits = []
+        # переводим модель в режим предсказания и делаем его
         for inputs in test_loader:
             inputs = inputs.to('cpu')
             model.eval()
@@ -23,11 +27,13 @@ def predict(model, test_loader):
     return probs
 
 
+# функция обработки изображения и подачи в модель для генерации предсказания
 def genral_pred(labels, model_incep):
     global pic_path
     if pic_path == 'no_path':
         name['text'] = 'Выберите картинку'
     else:
+        # обработка изображения и его нормализация
         label_encoder = LabelEncoder()
         label_encoder.fit(labels)
         RESCALE_SIZE = 299
@@ -39,20 +45,25 @@ def genral_pred(labels, model_incep):
         im = Image.open(pic_path)
         x = im.convert('RGB')
         x = transform(x)
+        # занесение в загрузчик в модель
         test_loader = DataLoader(x, shuffle=False, batch_size=64)
+        # генерация предсказания и вывод на экран
         probs = predict(model_incep, test_loader)
         preds = label_encoder.inverse_transform(np.argmax(probs, axis=1))
         name['text'] = 'Это ' + str(d[preds[0]])
 
 
+# выход с окна рассмотрения всех персонажей
 def leave2(root2):
     root2.destroy()
 
 
+# выход с главного окна
 def leave():
     root.destroy()
 
 
+# функция вывода выбранного изображения на экран
 def show_img(path):
     global pic
     img = Image.open(path)
@@ -64,6 +75,7 @@ def show_img(path):
     pic.image = img
 
 
+# функция генерации диалогового окна для выбора изображения
 def choose_file():
     global pic_path
     old = pic_path
@@ -73,9 +85,13 @@ def choose_file():
         show_img(pic_path)
 
 
+# окно с рассморением всех персонажей
 def all():
+    global d
     root2 = Toplevel(root)
     root2["bg"] = '#b734eb'
+    # создание фрейма с персонажами
+    mainPart2 = Frame(root2, bg='#b734eb')
     # создание кнопки выхода
     btn_exit2 = HoverButton(
         root2,
@@ -84,8 +100,39 @@ def all():
         font=("Courier", 22),
         command=lambda: leave2(root2)
     )
+    info2 = Label(
+        mainPart2,
+        text='Здесь показаны все основные\nперсонажи мультсериала',
+        bg='#b734eb',
+        font=("Courier", 30),
+    )
+    # расположение на экране фрейма и кнопки выхода
     btn_exit2.pack(anchor=NW, padx=20, pady=20)
+    mainPart2.pack()
+    info2.pack()
     root2.resizable(width=False, height=False)
+    # реализация меню персонажей с ползунком
+    canvas_2 = Canvas(mainPart2, width=300, height=900)
+    canvas_2.pack(side=LEFT, fill=BOTH, expand=1)
+    scroll = Scrollbar(mainPart2, orient=VERTICAL, command=canvas_2.yview)
+    scroll.pack(side=RIGHT, fill=Y)
+    canvas_2.configure(yscrollcommand=scroll.set)
+    canvas_2.bind('<Configure>', lambda e: canvas_2.configure(scrollregion = canvas_2.bbox("all")))
+    dop_frame = Frame(canvas_2, )
+    canvas_2.create_window((0, 0), window=dop_frame, anchor="nw")
+    folder = 'characters'
+    for address, dirs, files in os.walk(folder):
+        for file in files:
+            pic_new = Label(dop_frame)
+            img = Image.open(address + '/' + file)
+            img = img.resize((300, 300), Image.ANTIALIAS)
+            img = ImageTk.PhotoImage(img)
+            pic_new['width'] = 300
+            pic_new['height'] = 300
+            pic_new['image'] = img
+            pic_new.image = img
+            pic_new.pack(padx=170, pady=5)
+            Label(dop_frame, text=d[file.split('.')[0]], font=("Courier", 18)).pack()
     root2.attributes('-fullscreen', True)
     root2.mainloop()
 
@@ -102,6 +149,7 @@ btn_exit = HoverButton(
     font=("Courier", 22),
     command=leave
 )
+# генерация виджетов
 info = Label(
     mainPart,
     text='Выберите картинку одного из персонажей\n'
@@ -116,7 +164,7 @@ choose = HoverButton(
     font=("Courier", 25),
     command=lambda: choose_file()
 )
-# здесь должно быть окно с картинкой
+# окно с картинкой
 pic = Label(mainPart, width=60, height=30, bg='white')
 name = Label(
     mainPart,
@@ -149,7 +197,8 @@ btn_pred.grid(row=4, column=0)
 btn_all.grid(row=5, column=0)
 pic_path = 'no_path'
 RESCALE_SIZE = 299
-# словарь (хеш-таблица), для соотношения названий классов и русскоязычных имен персонажей
+# словарь (хеш-таблица), для соотношения названий классов и русскоязычных
+# имен персонажей
 d = {'abraham_grampa_simpson': 'Абрахам Симпсон (Дед)',
      'agnes_skinner': 'Агнес Скиннер',
      'apu_nahasapeemapetilon': 'Апу Нахасапимапетилон',
@@ -167,7 +216,7 @@ d = {'abraham_grampa_simpson': 'Абрахам Симпсон (Дед)',
      'homer_simpson': 'Гомер Симпсон',
      'kent_brockman': 'Кент Брокман',
      'krusty_the_clown': 'Клоун Красти',
-     'lenny_leonard	': 'Ленни Леонард',
+     'lenny_leonard': 'Ленни Леонард',
      'lionel_hutz': 'Лайнел Хатц',
      'lisa_simpson': 'Лиза Симпсон',
      'maggie_simpson': 'Мэгги Симпсон',
@@ -194,6 +243,7 @@ d = {'abraham_grampa_simpson': 'Абрахам Симпсон (Дед)',
      'disco_stu': 'Диско Стю'
      }
 labels = []
+# метки классов и загрузка модели
 for k in d.keys():
     labels.append(k)
 model_incep = torch.load('full_model.pth', map_location=torch.device('cpu'))
